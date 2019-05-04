@@ -7,7 +7,7 @@ class Discriminator(nn.Module):
     PatchGAN discriminator
     
     """
-    def __init__(self, in_channel=3, channel_mutiplier=64, n_layers=3,kernel_size=4, stride=2, padding=1, norm_layer=nn.BatchNorm2d):
+    def __init__(self, in_channel=3, channel_multiplier=64, n_layers=3,kernel_size=4, stride=2, padding=1, norm_layer=nn.BatchNorm2d):
         super().__init__()
         
         sequence = [nn.Conv2d(in_channel, channel_multiplier, kernel_size=kernel_size, stride=stride, padding=padding),
@@ -21,11 +21,10 @@ class Discriminator(nn.Module):
             previous_channel_size = out_channel_n
             
             sequence += [nn.Conv2d(in_channel_n, out_channel_n, kernel_size=kernel_size, stride=stride, padding=padding),
-                        norm_layer,
+                        norm_layer(out_channel_n),
                         nn.LeakyReLU(0.2,True)]
         
-        sequence += [nn.Conv2d(previous_channel_size, 1, kernel_size=kernel_size, stride=stride, padding=padding),
-                    nn.Sigmoid()]
+        sequence += [nn.Conv2d(previous_channel_size, 1, kernel_size=kernel_size, stride=stride, padding=padding)]
         
         self.main = nn.Sequential(*sequence)
     

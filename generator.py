@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class Generator(nn.Modules):
+class Generator(nn.Module):
     """
     Suggested in the cycleGAN paper,
     the Generator uses a structure similar to Style Transfer
@@ -27,7 +27,8 @@ class Generator(nn.Modules):
         self.up_instance_norm1 = InstanceNormalization(64)
         self.up_instance_norm2 = InstanceNormalization(32)
         self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
+        self.tanh = ScaledTanh(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
         
     def forward(self, x):
             initial_size = x.shape
@@ -82,7 +83,26 @@ class UpsampleConvLayer(torch.nn.Module):
         out = self.reflection_pad(x_in)
         out = self.conv2d(out)
         return out
-
+    
+    
+class ScaledTanh(nn.Module):
+    def __init__(self, mean, std):
+        super().__init__()
+        mean = torch.FloatTensor(mean).view(1,3,1,1)
+        std = torch.FloatTensor(std).view(1,3,1,1)
+        self.scale = (1/2/std)-(1e-5)
+        max_old = (1-mean)/std
+        self.bias = max_old-self.scale
+        self.tanh = nn.Tanh()
+        self.register_buffer('k', self.scale)
+        self.register_buffer('b', self.bias)
+        
+    def forward(self, x):
+        x = self.tanh(x)
+        x = self.k * x + self.b
+        return x
+    
+    
 class InstanceNormalization(nn.Module):
     """InstanceNormalization
     Improves convergence of neural-style.
@@ -150,3 +170,4 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
 
         return out
+    
