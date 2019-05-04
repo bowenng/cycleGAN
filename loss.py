@@ -69,13 +69,12 @@ class GANTrainer():
                 self.Dx.zero_grad()
                 self.Dy.zero_grad()
                 
-                adv_loss_Dx = self.adversial_loss_Dy(self.Dx(fake_x), False) + self.adversial_loss_Dx(self.Dx(x), True)
-                adv_loss_Dy = self.adversial_loss_Dx(self.Dy(fake_y), False) + self.adversial_loss_Dy(self.Dy(y), True)
-                
+                adv_loss_Dx = self.adversial_loss_Dx(self.Dx(fake_x.detach()), False) + self.adversial_loss_Dx(self.Dx(x), True)
                 adv_loss_Dx.backward()
-                adv_loss_Dy.backward()
-                
                 self.optimizer_Dx.step()
+                
+                adv_loss_Dy = self.adversial_loss_Dy(self.Dy(fake_y.detach()), False) + self.adversial_loss_Dy(self.Dy(y), True)
+                adv_loss_Dy.backward()
                 self.optimizer_Dy.step()
                 
                 print('Loss:')
