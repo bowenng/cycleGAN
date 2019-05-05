@@ -2,14 +2,14 @@ import torch
 from torch import nn
 from torch.utils import data
 from torch import optim
-
+import os
 
 class GANTrainer():
     """
     Full objective that combines adversial loss and cycle consistency loss
     """
     
-    def __init__(self, G, F, Dx, Dy, dataset_X, dataset_Y, epochs=100, batch_size=1, num_workers=1, lr=0.0002,device='cuda'):
+    def __init__(self, G, F, Dx, Dy, dataset_X, dataset_Y, epochs=100, batch_size=1, num_workers=1, lr=0.0002,device='cuda',check_progress_every=100, save_every=100):
         self.G = G.to(device)
         self.F = F.to(device)
         self.Dx = Dx.to(device)
@@ -22,6 +22,8 @@ class GANTrainer():
         
         self.epochs = epochs
         self.device = device
+        self.check_progress_every = check_progress_every
+        self.save_every = save_every
         
         self.dataloader_X = data.DataLoader(dataset_X, batch_size=batch_size, num_workers=num_workers)
         self.dataloader_Y = data.DataLoader(dataset_Y, batch_size=batch_size, num_workers=num_workers)
@@ -34,10 +36,14 @@ class GANTrainer():
         
         self.cycle_consistency_loss_x = CycleConsistencyLoss().to(device)
         self.cycle_consistency_loss_y = CycleConsistencyLoss().to(device)
+
         
     def train(self):
+        step = 0
         for e in range(self.epochs):
             for x, y in zip(self.dataloader_X, self.dataloader_Y):
+                step += 1
+                
                 x = x.to(self.device)
                 y = y.to(self.device)
                 #generate G(x) F(G(x)) F(y) G(F(y))
@@ -58,7 +64,7 @@ class GANTrainer():
                 cyc_loss_y = self.cycle_consistency_loss_y(y, restored_y)
                 
                 #Full objective = adversial loss + lambda(=10) * cycle consistency loss
-                generator_loss = adv_loss_G + adv_loss_F + 10 * (cyc_loss_x + cyc_loss_y)
+                generator_loss = 0.5*(adv_loss_G + adv_loss_F) + 10 * (cyc_loss_x + cyc_loss_y)
                 
                 generator_loss.backward()
                 #update G and F
@@ -77,10 +83,19 @@ class GANTrainer():
                 adv_loss_Dy.backward()
                 self.optimizer_Dy.step()
                 
-                print('Loss:')
-                print('\tGenerator: {}'.format(generator_loss.item()))
-                print('\tDy: {}'.format(adv_loss_Dy.item()))
-                print('\tDx: {}'.format(adv_loss_Dx.item()))
+                if step % self.check_progress_every == 0:
+                    print('Loss:')
+                    print('\tGenerator: {}'.format(generator_loss.item()))
+                    print('\tDy: {}'.format(adv_loss_Dy.item()))
+                    print('\tDx: {}'.format(adv_loss_Dx.item()))
+                
+                if step % self.save_every == 0:
+                    model = {'G': self.G.state_dict(),
+                            'F' : self.F.state_dict(),
+                            'Dy' : self.Dy.state_dict(),
+                            'Dx' : self.Dx.state_dict(),
+                            'step': step}
+                    torch.save(model, os.path.join('saved_models','{}.pth'.format(step)))
     
     
 class AdversialLoss(nn.Module):
