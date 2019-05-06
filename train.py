@@ -16,7 +16,7 @@ if __name__ == '__main__':
     
     print('loading datasets ...')
     dataset_X = ImageDataset(root='train2014', transform=pretrain_transform())
-    dataset_Y = ImageDataset(root='train2014', transform=pretrain_transform())
+    dataset_Y = ImageDataset(root='YourName', transform=pretrain_transform())
     
     print('creating trainer ...')
     trainner = GANTrainer(G, F, Dx, Dy, dataset_X, dataset_Y)

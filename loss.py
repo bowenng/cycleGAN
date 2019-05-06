@@ -9,7 +9,7 @@ class GANTrainer():
     Full objective that combines adversial loss and cycle consistency loss
     """
     
-    def __init__(self, G, F, Dx, Dy, dataset_X, dataset_Y, epochs=100, batch_size=1, num_workers=1, lr=0.0002,device='cuda',check_progress_every=100, save_every=100):
+    def __init__(self, G, F, Dx, Dy, dataset_X, dataset_Y, epochs=100, batch_size=1, num_workers=1, lr=0.0002,device='cuda',check_progress_every=1000, save_every=1000, previous_step=0):
         self.G = G.to(device)
         self.F = F.to(device)
         self.Dx = Dx.to(device)
@@ -24,6 +24,7 @@ class GANTrainer():
         self.device = device
         self.check_progress_every = check_progress_every
         self.save_every = save_every
+        self.previous_step = previous_step
         
         self.dataloader_X = data.DataLoader(dataset_X, batch_size=batch_size, num_workers=num_workers)
         self.dataloader_Y = data.DataLoader(dataset_Y, batch_size=batch_size, num_workers=num_workers)
@@ -39,7 +40,7 @@ class GANTrainer():
 
         
     def train(self):
-        step = 0
+        step = self.previous_step
         for e in range(self.epochs):
             for x, y in zip(self.dataloader_X, self.dataloader_Y):
                 step += 1
@@ -84,7 +85,7 @@ class GANTrainer():
                 self.optimizer_Dy.step()
                 
                 if step % self.check_progress_every == 0:
-                    print('Loss:')
+                    print('Loss at step {}:'.format(step))
                     print('\tGenerator: {}'.format(generator_loss.item()))
                     print('\tDy: {}'.format(adv_loss_Dy.item()))
                     print('\tDx: {}'.format(adv_loss_Dx.item()))
